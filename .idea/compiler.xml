@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="com-common" />
+        <module name="com-web" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="com-common" target="1.8" />
+      <module name="com-generator" target="1.8" />
+      <module name="com-web" target="1.8" />
+      <module name="comdao" target="1.8" />
+      <module name="commodel" target="1.8" />
+      <module name="comservice" target="1.8" />
+      <module name="springboot-parent" target="1.8" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="com-common" options="-parameters" />
+      <module name="com-generator" options="-parameters" />
+      <module name="com-web" options="-parameters" />
+      <module name="comdao" options="-parameters" />
+      <module name="commodel" options="-parameters" />
+      <module name="comservice" options="-parameters" />
+      <module name="springboot-parent" options="" />
+    </option>
+  </component>
+</project>
