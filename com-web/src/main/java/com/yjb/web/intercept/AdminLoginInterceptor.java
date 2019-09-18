@@ -3,24 +3,32 @@ package com.yjb.web.intercept;
 import com.alibaba.fastjson.JSONObject;
 import com.yjb.common.exception.MyException;
 import com.yjb.common.exception.SystemCode;
-import com.yjb.common.redis.RedisUtil;
 import com.yjb.web.entity.Login;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.servlet.HandlerInterceptor;
 import org.springframework.web.servlet.ModelAndView;
-import redis.clients.jedis.Jedis;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 public class AdminLoginInterceptor implements HandlerInterceptor {
     protected List<String> patterns = new ArrayList<String>(Arrays.asList(".*?/.*/no_.*?", "/", "/error", "/login"));
 
-    String REDIS_SESSION_KEY = "dddl";
-    int SESSION_EXPIRE = 180;
-    String LOGIN_TOKEN = "LOGIN_TOKEN";
+    @Value("${REDIS_SESSION_KEY}")
+    String REDIS_SESSION_KEY;
+    @Value("${SESSION_EXPIRE}")
+    int SESSION_EXPIRE;
+    @Value("${LOGIN_CookName}")
+    String LOGIN_CookName;
+
+    @Autowired
+    private StringRedisTemplate redis;
 
     //    在请求处理之前调用,只有返回true才会执行请求
     @Override
@@ -31,32 +39,23 @@ public class AdminLoginInterceptor implements HandlerInterceptor {
             return true;
 
         // 权限校验
-        Cookie cookie = getCookieByName(request, LOGIN_TOKEN);
-        Jedis jedisClient = RedisUtil.getJedis();//获取连接
+        Cookie cookie = getCookieByName(request, LOGIN_CookName);
+
         Login login = null;
         if (cookie != null && !cookie.getValue().equals("")) {
-
-            String login2 = jedisClient.get(REDIS_SESSION_KEY + ":" + cookie.getValue());
+            String login2 = redis.opsForValue().get(REDIS_SESSION_KEY + ":" + cookie.getValue());
             Object a = JSONObject.parse(login2);//redis中取出必須先轉
+            if(a==null){
+                throw new MyException(SystemCode.LOGINTIMER_ERROR.getCode(), SystemCode.LOGINTIMER_ERROR.getMessage());
+            }
             login = JSONObject.parseObject(a.toString(), Login.class);
-
         }
         if (cookie == null || login == null) {// 判断用户是否经过了授权
-            // 判断是否是AJAX访问
-            if (request.getHeader("x-requested-with") != null
-                    && request.getHeader("x-requested-with").equalsIgnoreCase("XMLHttpRequest")) {
-                response.setHeader("sessionstatus", "timeout");
-                response.setStatus(403);
-                throw new MyException(SystemCode.ERROR.getCode(), SystemCode.ERROR.getMessage());
-
-            } else {
                 throw new MyException(SystemCode.NOLOGIN_ERROR.getCode(), SystemCode.NOLOGIN_ERROR.getMessage());
-            }
         }
         //成功之后再次更新redis tocken过期时间
-        jedisClient.expire(REDIS_SESSION_KEY + ":" + cookie.getValue(), SESSION_EXPIRE);
+        redis.expire(REDIS_SESSION_KEY + ":" + cookie.getValue(), SESSION_EXPIRE, TimeUnit.SECONDS);//SECONDS 秒
 
-        RedisUtil.close(jedisClient);
         return true;
     }
 

@@ -13,7 +13,7 @@ public class BaseController {
     public ResponseResult returnResu(  HttpServletRequest req , Object body,String msg,int code){
         ResponseResult result=new ResponseResult();
         result.setUrl(req.getRequestURL());
-         result.setResponseCode(code);
+        result.setResponseCode(code);
         result.setResponseMessage(msg);
         result.setData(body);
         return result;
