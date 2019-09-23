@@ -3,8 +3,10 @@ package com.yjb.web.controller;
 import com.alibaba.fastjson.JSONObject;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.yjb.common.Cookie.CookieUtils;
+import com.yjb.common.exception.MyException;
 import com.yjb.common.exception.SystemCode;
 import com.yjb.common.utils.ResponseResult;
+import com.yjb.common.utils.SecUtil;
 import com.yjb.web.base.BaseController;
 import com.yjb.web.entity.Login;
 import com.yjb.web.service.ILoginService;
@@ -21,6 +23,10 @@ import org.springframework.web.bind.annotation.RestController;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -47,7 +53,7 @@ public class LoginController extends BaseController {
         Assert.notNull(login.getLoginUsername(),"空的參數");
         String msg=SystemCode.SUCCESS.getMessage();
         int code=SystemCode.SUCCESS.getCode();
-        Login user = loginService.getOne(new QueryWrapper<Login>().lambda().eq(Login::getLoginUsername, login.getLoginUsername()).eq(Login::getLoginPwd,login.getLoginPwd()));
+        Login user = loginService.getOne(new QueryWrapper<Login>().lambda().eq(Login::getLoginUsername, login.getLoginUsername()).eq(Login::getLoginPwd,SecUtil.decrypt(login.getLoginPwd())));
 
           if (user!=null){
               //登录成功，生成token
@@ -68,6 +74,7 @@ public class LoginController extends BaseController {
           }else {
               msg=SystemCode.LOGIN_ERROR.getMessage();
               code=SystemCode.LOGIN_ERROR.getCode();
+              throw new MyException(code,msg);
           }
 
          return returnResu(req,"",msg,code);
@@ -82,6 +89,23 @@ public class LoginController extends BaseController {
         int code=SystemCode.SUCCESS.getCode();
 
         return returnResu(req,user,msg,code);
+    }
+
+    @ResponseBody
+    @RequestMapping(value = "/register")
+    public ResponseResult register(@RequestBody Login login1, HttpSession session, HttpServletRequest req, HttpServletResponse response) {
+
+            Login login2=new Login();
+            login2.setLoginPwd(SecUtil.encrypt(login1.getLoginPwd()));
+            Boolean flag=loginService.save(login2);
+            String msg=SystemCode.SUCCESS.getMessage();
+            int code=SystemCode.SUCCESS.getCode();
+            if (!flag){
+                msg=SystemCode.REGISTER_ERROR.getMessage();
+                code=SystemCode.REGISTER_ERROR.getCode();
+                throw new MyException(code,msg);
+            }
+            return returnResu(req,"",msg,code);
     }
 
 
